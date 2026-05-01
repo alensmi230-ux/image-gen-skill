@@ -2,9 +2,8 @@
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
-WORKSPACE_ROOT="$(cd "$SCRIPT_DIR/../../.." && pwd)"
-GPT_SCRIPT="$WORKSPACE_ROOT/skills/gpt-image-2/scripts/gpt-image.sh"
-GEMINI_SCRIPT="$WORKSPACE_ROOT/skills/nanobanana-image-edit/scripts/nanobanana.sh"
+GPT_SCRIPT="$SCRIPT_DIR/gpt-image.sh"
+GEMINI_SCRIPT="$SCRIPT_DIR/nanobanana.sh"
 
 backend="auto"
 model=""
