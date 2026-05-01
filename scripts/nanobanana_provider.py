@@ -12,6 +12,7 @@ from typing import Dict, Any
 
 WORKSPACE_ROOT = Path(__file__).resolve().parents[3]
 DEFAULT_CONFIG_PATH = str(WORKSPACE_ROOT / ".openclaw" / "local" / "nanobanana-providers.json")
+UNIFIED_CONFIG_PATH = str(WORKSPACE_ROOT / ".openclaw" / "local" / "image-gen-providers.json")
 DEFAULT_MODEL = "gemini-3.1-flash-image-preview"
 MODEL_ALIASES = {
     "nanobanana2": "gemini-3.1-flash-image-preview",
@@ -33,18 +34,23 @@ def err(msg: str, code: int = 1):
 
 
 def load_provider_config() -> Dict[str, Any]:
-    cfg_path = os.environ.get("NANOBANANA_PROVIDER_CONFIG", DEFAULT_CONFIG_PATH)
-    p = Path(cfg_path)
-    if not p.exists():
+    cfg_path = os.environ.get("NANOBANANA_PROVIDER_CONFIG") or os.environ.get("IMAGE_GEN_PROVIDER_CONFIG")
+    if cfg_path:
+        candidates = [cfg_path]
+    else:
+        candidates = [DEFAULT_CONFIG_PATH, UNIFIED_CONFIG_PATH]
+    p = next((Path(x) for x in candidates if Path(x).exists()), None)
+    if p is None:
         err(
-            "provider config not found: "
-            f"{cfg_path}. Configure provider base_url + api_key in "
-            "<workspace>/.openclaw/local/nanobanana-providers.json before first use."
+            "provider config not found. Create either "
+            f"{DEFAULT_CONFIG_PATH} or {UNIFIED_CONFIG_PATH}. "
+            "Unified config example: "
+            '{"default_provider":"default","providers":{"default":{"api_key":"YOUR_KEY","gemini":{"base_url":"https://generativelanguage.googleapis.com","default_model":"gemini-3.1-flash-image-preview"}}}}'
         )
     try:
         return json.loads(p.read_text())
     except Exception as e:
-        err(f"failed to parse provider config {cfg_path}: {e}")
+        err(f"failed to parse provider config {p}: {e}")
 
 
 def choose_provider(cfg: Dict[str, Any], provider_name: str | None) -> tuple[str, Dict[str, Any]]:
@@ -57,10 +63,15 @@ def choose_provider(cfg: Dict[str, Any], provider_name: str | None) -> tuple[str
     if name not in providers:
         err(f"provider '{name}' not found in config")
     prov = providers[name]
+    backend_cfg = prov.get("gemini") or prov.get("nanobanana")
+    if isinstance(backend_cfg, dict):
+        merged = {k: v for k, v in prov.items() if k not in {"gpt", "gemini", "nanobanana"}}
+        merged.update(backend_cfg)
+        prov = merged
     has_single = bool(prov.get("api_key"))
     has_multi = bool(prov.get("api_keys"))
     if not prov.get("base_url") or not (has_single or has_multi):
-        err(f"provider '{name}' is missing base_url and api_key/api_keys")
+        err(f"provider '{name}' is missing gemini.base_url/base_url and api_key/api_keys")
     return name, prov
 
 
@@ -240,7 +251,8 @@ def main():
 
     cfg = load_provider_config()
     provider_name, provider = choose_provider(cfg, args.provider)
-    resolved_model = resolve_model_alias(args.model)
+    model_arg = args.model or provider.get("default_model") or cfg.get("default_model") or DEFAULT_MODEL
+    resolved_model = resolve_model_alias(model_arg)
     endpoint = build_endpoint(provider["base_url"], resolved_model)
     payload = build_request(args.prompt, args.inputs, args.aspect, args.size)
 
@@ -248,8 +260,8 @@ def main():
     print(f"  Provider: {provider_name}")
     print(f"  Endpoint: {endpoint}")
     print(f"  Model:    {resolved_model}")
-    if resolved_model != args.model:
-        print(f"  Alias:    {args.model} -> {resolved_model}")
+    if resolved_model != model_arg:
+        print(f"  Alias:    {model_arg} -> {resolved_model}")
     print(f"  Aspect:   {args.aspect}")
     print(f"  Size:     {args.size}")
     if args.inputs:

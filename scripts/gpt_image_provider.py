@@ -13,6 +13,7 @@ from typing import Any, Dict
 
 WORKSPACE_ROOT = Path(__file__).resolve().parents[3]
 DEFAULT_CONFIG_PATH = str(WORKSPACE_ROOT / ".openclaw" / "local" / "gpt-image-providers.json")
+UNIFIED_CONFIG_PATH = str(WORKSPACE_ROOT / ".openclaw" / "local" / "image-gen-providers.json")
 DEFAULT_MODEL = "gpt-image-2"
 VALID_QUALITIES = {"auto", "low", "medium", "high"}
 VALID_OUTPUT_FORMATS = {"png", "jpeg", "webp"}
@@ -25,20 +26,23 @@ def err(msg: str, code: int = 1):
 
 
 def load_provider_config() -> Dict[str, Any]:
-    cfg_path = os.environ.get("GPT_IMAGE_PROVIDER_CONFIG", DEFAULT_CONFIG_PATH)
-    p = Path(cfg_path)
-    if not p.exists():
+    cfg_path = os.environ.get("GPT_IMAGE_PROVIDER_CONFIG") or os.environ.get("IMAGE_GEN_PROVIDER_CONFIG")
+    if cfg_path:
+        candidates = [cfg_path]
+    else:
+        candidates = [DEFAULT_CONFIG_PATH, UNIFIED_CONFIG_PATH]
+    p = next((Path(x) for x in candidates if Path(x).exists()), None)
+    if p is None:
         err(
-            "provider config not found: "
-            f"{cfg_path}. Configure an OpenAI-compatible provider base_url + api_key "
-            "before first use. Example: {\"default_provider\":\"sealineai\","
-            "\"providers\":{\"sealineai\":{\"base_url\":\"https://sealineai.com/v1\","
-            "\"api_key\":\"YOUR_KEY\"}}}"
+            "provider config not found. Create either "
+            f"{DEFAULT_CONFIG_PATH} or {UNIFIED_CONFIG_PATH}. "
+            "Unified config example: "
+            '{"default_provider":"default","providers":{"default":{"api_key":"YOUR_KEY","gpt":{"base_url":"https://example.com/v1","default_model":"gpt-image-2"}}}}'
         )
     try:
         return json.loads(p.read_text())
     except Exception as e:
-        err(f"failed to parse provider config {cfg_path}: {e}")
+        err(f"failed to parse provider config {p}: {e}")
 
 
 def choose_provider(cfg: Dict[str, Any], provider_name: str | None) -> tuple[str, Dict[str, Any]]:
@@ -51,10 +55,14 @@ def choose_provider(cfg: Dict[str, Any], provider_name: str | None) -> tuple[str
     if name not in providers:
         err(f"provider '{name}' not found in config")
     prov = providers[name]
+    if isinstance(prov.get("gpt"), dict):
+        merged = {k: v for k, v in prov.items() if k not in {"gpt", "gemini", "nanobanana"}}
+        merged.update(prov["gpt"])
+        prov = merged
     has_single = bool(prov.get("api_key"))
     has_multi = bool(prov.get("api_keys"))
     if not prov.get("base_url") or not (has_single or has_multi):
-        err(f"provider '{name}' is missing base_url and api_key/api_keys")
+        err(f"provider '{name}' is missing gpt.base_url/base_url and api_key/api_keys")
     return name, prov
 
 

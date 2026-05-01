@@ -33,40 +33,35 @@ curl -fsSL https://ghfast.top/https://raw.githubusercontent.com/alensmi230-ux/im
 
 ## Configure providers
 
-Credentials are not included. Create one or both local config files:
+Credentials are not included. Prefer one unified local config:
+
+`~/.openclaw/workspace/.openclaw/local/image-gen-providers.json`
+
+Example for one provider that supports both GPT image and Gemini/Nano Banana APIs:
+
+```json
+{
+  "default_provider": "default",
+  "providers": {
+    "default": {
+      "api_key": "YOUR_API_KEY",
+      "gpt": {
+        "base_url": "https://YOUR_OPENAI_COMPATIBLE_BASE_URL/v1",
+        "default_model": "gpt-image-2"
+      },
+      "gemini": {
+        "base_url": "https://YOUR_GEMINI_COMPATIBLE_BASE_URL",
+        "default_model": "gemini-3.1-flash-image-preview"
+      }
+    }
+  }
+}
+```
+
+Legacy split configs are still supported:
 
 - `~/.openclaw/workspace/.openclaw/local/gpt-image-providers.json`
 - `~/.openclaw/workspace/.openclaw/local/nanobanana-providers.json`
-
-Minimal GPT config:
-
-```json
-{
-  "default_provider": "default",
-  "providers": {
-    "default": {
-      "base_url": "https://YOUR_OPENAI_COMPATIBLE_BASE_URL/v1",
-      "api_key": "YOUR_API_KEY",
-      "default_model": "gpt-image-2"
-    }
-  }
-}
-```
-
-Minimal Gemini/Nano Banana config:
-
-```json
-{
-  "default_provider": "default",
-  "providers": {
-    "default": {
-      "base_url": "https://generativelanguage.googleapis.com",
-      "api_key": "YOUR_API_KEY",
-      "default_model": "gemini-3.1-flash-image-preview"
-    }
-  }
-}
-```
 
 Validate:
 

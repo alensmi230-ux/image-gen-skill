@@ -3,7 +3,14 @@ set -euo pipefail
 
 SCRIPT_DIR="$(cd -- "$(dirname -- "$0")" && pwd)"
 WORKSPACE_ROOT="$(cd -- "$SCRIPT_DIR/../../.." && pwd)"
-CFG="${GPT_IMAGE_PROVIDER_CONFIG:-$WORKSPACE_ROOT/.openclaw/local/gpt-image-providers.json}"
+CFG="${GPT_IMAGE_PROVIDER_CONFIG:-${IMAGE_GEN_PROVIDER_CONFIG:-}}"
+if [ -z "$CFG" ]; then
+  if [ -f "$WORKSPACE_ROOT/.openclaw/local/gpt-image-providers.json" ]; then
+    CFG="$WORKSPACE_ROOT/.openclaw/local/gpt-image-providers.json"
+  else
+    CFG="$WORKSPACE_ROOT/.openclaw/local/image-gen-providers.json"
+  fi
+fi
 PY="$SCRIPT_DIR/gpt_image_provider.py"
 
 if [ -f "$PY" ]; then

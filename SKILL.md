@@ -138,12 +138,26 @@ bash <workspace>/skills/image-gen/scripts/image.sh \
 
 ## Provider config
 
-This skill is standalone, but credentials are still local. It reads:
+This skill is standalone, but credentials stay local. Prefer one unified config:
 
-- GPT: `<workspace>/.openclaw/local/gpt-image-providers.json`
-- Gemini: `<workspace>/.openclaw/local/nanobanana-providers.json`
+- `<workspace>/.openclaw/local/image-gen-providers.json`
 
-Use `scripts/check-gpt-image.sh` or `scripts/check-nanobanana.sh` to validate setup. For config examples, read `references/gpt/provider-setup.md` or `references/gemini/provider-setup.md`.
+Unified config example for one provider with both APIs:
+
+```json
+{
+  "default_provider": "default",
+  "providers": {
+    "default": {
+      "api_key": "YOUR_API_KEY",
+      "gpt": {"base_url": "https://YOUR_OPENAI_COMPATIBLE_BASE_URL/v1", "default_model": "gpt-image-2"},
+      "gemini": {"base_url": "https://YOUR_GEMINI_COMPATIBLE_BASE_URL", "default_model": "gemini-3.1-flash-image-preview"}
+    }
+  }
+}
+```
+
+Legacy split configs are still supported: `<workspace>/.openclaw/local/gpt-image-providers.json` and `<workspace>/.openclaw/local/nanobanana-providers.json`. Use `scripts/check-gpt-image.sh` or `scripts/check-nanobanana.sh` to validate setup.
 
 ## Prompting notes
 
