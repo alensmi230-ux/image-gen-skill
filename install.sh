@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-REPO_URL="${IMAGE_GEN_SKILL_REPO:-https://github.com/clawdbot/image-gen-skill.git}"
+REPO_URL="${IMAGE_GEN_SKILL_REPO:-https://github.com/alensmi230-ux/image-gen-skill.git}"
 TARGET="${IMAGE_GEN_SKILL_DIR:-${HOME}/.openclaw/workspace/skills/image-gen}"
 TMP="$(mktemp -d)"
 cleanup() { rm -rf "$TMP"; }
